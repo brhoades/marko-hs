@@ -36,9 +36,10 @@ processChains src = HashMap.map (either (flip (HashMap.singleton) 1) id) hmWithE
           Just x      -> x + 1
           Nothing -> 1
 
----------------------------------------------------
--- Parsing files. TODO This belongs somewhere else
----------------------------------------------------
+----------------
+-- Parsing files
+----------------
+
 -- Returns bytestrings with count or fewer newlines
 lineParser :: Int -> P.Parser ([D.ByteString])
 lineParser count = do

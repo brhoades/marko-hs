@@ -28,21 +28,25 @@ instance Show Event where
 
 -- TODO: I imagine this is some monad-enabled IRC state return... so JOINs update a state monad.
 -- For now, we just return what the message represents.
--- 
--- parseIncoming takes the Maybe Events returned from the parser and returns just the events.
-parseIncoming :: String -> [Event]
-parseIncoming str = do
-  let events = readP_to_S ircParser str
 
-  if length events > 0 then 
-    map (fromJust) $ filter (isJust) (fst . last $ events)
+-- parseIncoming is a thin veneer around parsing strings to irc Events.
+parseIncoming :: String -> Maybe [Event]
+parseIncoming str = do
+  -- unreducedEvents :: [([Event], String)], per-iteration results from parsing IRC lines.
+  let unreducedEvents = readP_to_S ircParser str
+
+  if length unreducedEvents > 0 then
+    Just $ fst . last $ unreducedEvents
   else
-    []
+    Nothing
+  where
+    unreducedEvents = readP_to_S ircParser str
 
 -- Parses a string of 0+ events.
-ircParser :: ReadP [Maybe Event]
+ircParser :: ReadP [Event]
 ircParser = do
-    many $ choice [otherMessages, ping]
+  result <- (many $ choice [otherMessages, ping])
+  return $ map fromJust $ filter isJust result
   where
     ping = do
       skipMany $ satisfy eolws

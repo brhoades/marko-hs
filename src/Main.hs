@@ -61,14 +61,16 @@ listen forwardsDB backwardsDB h = forever $ do
   g <- newStdGen
   maybeRawStr <- Network.recv h
   case maybeRawStr of
-    Nothing  -> print "Nothing received. Terminate?"
-    Just rawStr -> do
-      let str = unpack rawStr
-      let events = parseIncoming str
-      mapM_ (putStrLn . show) events
-      let responses = (map (handleEvent g forwardsDB backwardsDB) events)
+    Nothing  -> print "Connection to server closed gracefully."
+    Just rawIRC -> do
+      let parsedEvent = parseIncoming $ unpack rawIRC
 
-      mapM_ write' $ map fromJust $ filter (isJust) responses
+      case parsedEvent of
+        Just events -> do
+          mapM_ (putStrLn . show) events
+          let responses = (map (handleEvent g forwardsDB backwardsDB) events)
+          mapM_ write' $ map fromJust $ filter (isJust) responses
+        Nothing -> return ()
   where
     forever a = do _ <- a; forever a
     write' = uncurry (write h)
