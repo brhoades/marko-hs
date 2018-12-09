@@ -38,13 +38,14 @@ main = do
       let filename = head args
       rawData <- Marko.readFromFile filename
 
+      let term = D.pack $ map (fromIntegral . fromEnum) "\n"
       -- Eager load databases so that we don't timeout.
-      let wordDB = Marko.processChains rawData
+      let wordDB = Marko.processChains rawData $ Just term
       putStr "Loading forward word database... "
       hFlush stdout
       putStrLn $ "Done! " ++ (show $ length wordDB) ++ " words and " ++ (show $ Marko.totalRelations wordDB) ++ " chains loaded."
 
-      let wordDBBackwards = Marko.processChainsBackwards rawData
+      let wordDBBackwards = Marko.processChainsBackwards rawData $ Just term
       putStr "Loading reverse word database... "
       hFlush stdout
       putStrLn $ "Done! " ++ (show $ length wordDBBackwards) ++ " words and " ++ (show $ Marko.totalRelations wordDBBackwards) ++ " chains loaded."
@@ -85,7 +86,6 @@ handleEvent g forwardsDB backwardsDB event = do
       Ping s -> do
         Just ("PONG ", s)
       MessageEvent (_, channel, Just user) m -> do
-        -- TODO handle line endings
         let parts = words m
         case length parts of
           0 -> Nothing
@@ -93,8 +93,8 @@ handleEvent g forwardsDB backwardsDB event = do
               -- since we used words, massage the [[Char]] back to a ByteString choice
               let choice = head parts
               let packedChoice = D.pack $ map (fromIntegral . fromEnum) choice
-              let right = map unpack $ Marko.getRandomSentence g forwardsDB packedChoice
-              let left = map unpack $ reverse $ Marko.getRandomSentence g backwardsDB packedChoice
+              let right = cleanup $ Marko.getRandomSentence g forwardsDB packedChoice
+              let left = cleanup $ reverse $ Marko.getRandomSentence g backwardsDB packedChoice
               if user == nick then Nothing else
                   if channel == nick then
                     Just ("PRIVMSG " ++ user, intercalate " " $ concat [left, [choice], right])
@@ -102,3 +102,5 @@ handleEvent g forwardsDB backwardsDB event = do
                     Just ("PRIVMSG " ++ channel, intercalate " " $ concat [left, [choice], right])
       -- Just (NoticeEvent s) -> do
       _ -> Nothing
+  where
+    cleanup = filter (/= "\n") . (map unpack)

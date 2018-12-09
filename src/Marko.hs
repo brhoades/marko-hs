@@ -17,23 +17,29 @@ type NextChainData     a = HashMap.HashMap a (WeightedNextChain a)
 -- Parsing and General IO
 -------------------------
 
-processChainsBackwards :: (Ord a, Hashable a) => [[a]] -> NextChainData a
-processChainsBackwards = processChains . (map reverse)
+processChainsBackwards :: (Ord a, Hashable a) => [[a]] -> Maybe a -> NextChainData a
+processChainsBackwards src (Just term) = processChains (map (\x -> reverse (x ++ [term])) src) Nothing
+processChainsBackwards src Nothing     = processChains (map reverse src) Nothing
  
-processChains :: (Ord a, Hashable a) => [[a]] -> NextChainData a
-processChains src = HashMap.map (either (flip (HashMap.singleton) 1) id) hmWithEither
+processChains :: (Ord a, Hashable a) => [[a]] -> Maybe a -> NextChainData a
+processChains rawSrc term = go
   where
+    -- Appends terminator so we can track where sentences end. Terminators should be unique and not present in source.
+    src = case term of
+            Just term -> map (\x -> x ++ [term]) rawSrc
+            Nothing -> rawSrc
+    go  = HashMap.map (either (flip (HashMap.singleton) 1) id) hmWithEither
     -- chains :: [(a, a)]
-    chains = (concat . map (\x -> zip x (tail x))) src
-    chains' = map (\(x, y) -> (x, Left y)) chains
+    chains       = concat $ map (\x -> zip x (tail x)) src
+    chains'      = map (\(x, y) -> (x, Left y)) chains
     hmWithEither = HashMap.fromListWith resolver chains'
     resolver :: (Eq a, Hashable a) => Either a (WeightedNextChain a) -> Either a (WeightedNextChain a) -> Either a (WeightedNextChain a) 
     resolver newVal oldVal = Right $ (HashMap.alter alterfn newVal' oldVal')
       where
-        oldVal'   = either (\x -> HashMap.singleton x 1) id oldVal
+        oldVal' = either (\x -> HashMap.singleton x 1) id oldVal
         newVal' = fromLeft undefined newVal
         alterfn v = Just $ case v of
-          Just x      -> x + 1
+          Just x  -> x + 1
           Nothing -> 1
 
 ----------------
@@ -71,7 +77,6 @@ chainParser = P.many' parseLine
     endline = \x -> x == (toW '\n') || x == (toW '\r')
     punct = \x -> x == (toW '.') || x == (toW '!') || x == (toW '?')
     wordTerminator = \x -> (splitter x || endline x || punct x)
-    
     toW = fromIntegral . fromEnum
 
 readFromFile :: String -> IO [[D.ByteString]]
@@ -125,11 +130,11 @@ parseStrings strings = (lookupMap, converted)
     lookupMap = snd $ foldr (\e (idx, hm) -> atomsToNumbers e idx hm) (0, HashMap.empty) chains
     converted = (fmap . fmap) (\x -> fromJust (HashMap.lookup x lookupMap)) chains
     getStrings fn (x:xs) = case fn x of
-      P.Fail _ _ _ -> error "Parser error"
+      P.Fail _ _ _  -> error "Parser error"
       P.Partial fn' -> getStrings fn' xs
-      P.Done _ r   -> r
+      P.Done _ r    -> r
     -- Never occurs as parsinge terminates on empty string.
-    getStrings _ []      = undefined
+    getStrings _ [] = undefined
 
 --------------------
 -- Generating Chains
@@ -156,7 +161,7 @@ getRandomSentence g nextData starter = getRandomSentence' starter (0 :: Integer)
   where
     -- getRandomSentence' :: (Eq b, Hashable b, Num c) => b -> c -> [b]
     getRandomSentence' l depth = case getRandomNext g nextData l of
-      Just newWord -> [newWord] ++ (if depth < 20 then getRandomSentence' newWord (depth + 1) else []) -- terminate to avoid loops
+      Just newWord -> [newWord] ++ (if depth < 50 then getRandomSentence' newWord (depth + 1) else []) -- terminate to avoid loops
       Nothing      -> [l]
 
 ----------------------
