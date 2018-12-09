@@ -71,7 +71,7 @@ ircParser = do
           return $ Just $ NoticeEvent msg
        | x == "MODE"   = do
           umask <- munch1 (not . eolws)
-          let (user, _, _, _) = parseUser umask
+          let user = parseUser umask
           _char ' '
           mode <- munch1 (not . eolws)
           return $ Just $ ModeEvent user mode
@@ -84,17 +84,26 @@ ircParser = do
 
 handleMSG :: String -> ReadP (Maybe Event)
 handleMSG user = do
-  let (nick, _, _, _) = parseUser user
+  let nick = parseUser user
   channel <- munch1 (/= ' ')
   _string " :"
   msg <- consumeEOL
   return $ Just $ MessageEvent ("", channel, Just $ nick) msg
 
-parseUser :: String -> (String, String, String, String)
-parseUser x = fst $ last $ readP_to_S user x
+parseUser :: String -> String
+parseUser str = fst $ last $ readP_to_S user str
   where
-    -- user mask
     user = do
+      -- get the nick for sure
+      nick <- munch (\x -> x /= '!' && x /= '@' && (not $ eolws x))
+      -- consume a umask, if present
+      consumeEOLWS
+      return nick
+
+parseUserMask :: String -> (String, String, String, String)
+parseUserMask str  = fst $ last $ readP_to_S userMask str
+  where
+    userMask = do
       nick <- munch (/= '!')
       _char '!'
       name <- munch (/= '@')

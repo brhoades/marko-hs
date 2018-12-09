@@ -11,13 +11,13 @@ import System.Random (newStdGen, StdGen)
 import System.IO (hFlush, stdout)
 import IRC
  
-server :: [Char]
+server   :: [Char]
 server   = "irc.freenode.net"
-port :: [Char]
+port     :: [Char]
 port     = "6697"
-chan :: [Char]
+chan     :: [Char]
 chan     = "##ircbottesting"
-nick :: [Char]
+nick     :: [Char]
 nick     = "marko2"
 joinMode :: [Char]
 joinMode = "+x"
@@ -37,7 +37,7 @@ main = do
       let filename = head args
       rawData <- Marko.readFromFile filename
 
-      -- Eagar load databases so we don't timeout.
+      -- Eager load databases so that we don't timeout.
       let wordDB = Marko.processChains rawData
       putStr "Loading forward word database... "
       hFlush stdout
