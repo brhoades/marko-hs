@@ -1,0 +1,44 @@
+cabal-version:       2.2
+name:                marko
+version:             0.1.0.0
+-- synopsis:
+-- description:
+license:             GPL-3.0-or-later
+license-file:        LICENSE
+author:              Billy Rhoades
+maintainer:          billyarhoades@gmail.com
+-- copyright:
+-- category:
+build-type:          Simple
+
+common deps
+  build-depends:
+    base >=4.11 && <4.12
+    , network
+    , unordered-containers==0.2.9.0
+    , random
+    , hashable
+    , text
+    , bytestring
+    , network-simple-tls
+    , bytestring
+    , attoparsec
+  ghc-options: -Wall
+  default-language:    Haskell2010
+
+executable marko
+  import:              deps
+  main-is:             Main.hs
+  other-modules:       Marko, IRC
+  hs-source-dirs:      src
+
+test-suite spec
+  import:              deps
+  type:                exitcode-stdio-1.0
+  main-is:             Main.hs
+  build-depends:
+      hspec
+    , QuickCheck
+  hs-source-dirs:      test, src
+  other-modules:       Marko, IRC
+  build-tool-depends:  hspec-discover:hspec-discover == 2.*
