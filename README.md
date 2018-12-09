@@ -32,6 +32,6 @@ Loading reverse word database... Done! 224834 words and 3477257 chains loaded.
 ## Input Format
 Input text should be provided with each sentence or message being on a new line. If input text is all on one line, this bot will likely never finish a complete sentence.
 
-This bot uses [ByteString](http://hackage.haskell.org/package/bytestring-0.10.8.2/docs/Data-ByteString.html#t:ByteString]s so it does not support unicode).
+This bot uses [ByteString](http://hackage.haskell.org/package/bytestring-0.10.8.2/docs/Data-ByteString.html)s to represent text, so it does not support unicode.
 
 
