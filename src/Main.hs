@@ -11,14 +11,14 @@ import System.Random (newStdGen, StdGen)
 import System.IO (hFlush, stdout)
 import IRC
  
-server   :: [Char]
-server   = "irc.freenode.net"
-port     :: [Char]
-port     = "6697"
-chan     :: [Char]
-chan     = "##ircbottesting"
-nick     :: [Char]
-nick     = "marko2"
+server    :: [Char]
+server    = "irc.wobscale.website"
+port      :: [Char]
+port      = "6697"
+chan      :: [Char]
+chan      = "##ircbottesting"
+nick      :: [Char]
+nick      = "marko2"
 joinEvent :: Event -> Bool
 joinEvent (ModeEvent user mode) = user == nick && mode == "+x"
 joinEvent _                     = False
@@ -78,28 +78,27 @@ listen forwardsDB backwardsDB h = forever $ do
 
 handleEvent :: StdGen -> ChainData -> ChainData -> Event -> Maybe (String, String)
 handleEvent g forwardsDB backwardsDB event = do
-  _ <- if joinEvent event then 
+  if joinEvent event then 
     Just ("JOIN", chan)
   else
-    Nothing
-
-  case event of
-    Ping s -> do
-      Just ("PONG ", s)
-    MessageEvent (_, channel, Just user) m -> do
-      -- TODO handle line endings
-      let parts = words m
-      case length parts of
-        0 -> Nothing
-        _ -> do
-            -- since we used words, massage the [[Char]] back to a ByteString choice
-            let choice = D.pack $ (map (fromIntegral . fromEnum) (head parts))
-            let right = map unpack $ Marko.getRandomSentence g forwardsDB choice
-            let left = map unpack $ reverse $ Marko.getRandomSentence g backwardsDB choice
-            if user == nick then Nothing else
-                if channel == nick then
-                  Just ("PRIVMSG " ++ user, intercalate " " $ (tail left) ++ right)
-                else
-                  Just ("PRIVMSG " ++ channel, intercalate " " $ (tail left) ++ right)
-    -- Just (NoticeEvent s) -> do
-    _ -> Nothing
+    case event of
+      Ping s -> do
+        Just ("PONG ", s)
+      MessageEvent (_, channel, Just user) m -> do
+        -- TODO handle line endings
+        let parts = words m
+        case length parts of
+          0 -> Nothing
+          _ -> do
+              -- since we used words, massage the [[Char]] back to a ByteString choice
+              let choice = head parts
+              let packedChoice = D.pack $ map (fromIntegral . fromEnum) choice
+              let right = map unpack $ Marko.getRandomSentence g forwardsDB packedChoice
+              let left = map unpack $ reverse $ Marko.getRandomSentence g backwardsDB packedChoice
+              if user == nick then Nothing else
+                  if channel == nick then
+                    Just ("PRIVMSG " ++ user, intercalate " " $ concat [left, [choice], right])
+                  else
+                    Just ("PRIVMSG " ++ channel, intercalate " " $ concat [left, [choice], right])
+      -- Just (NoticeEvent s) -> do
+      _ -> Nothing

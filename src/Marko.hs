@@ -54,7 +54,7 @@ lineParser count = do
 
 
 -- Words are [a-zA-Z0-9] and are separated by [ ]+.
-chainParser :: P.Parser ([[ D.ByteString]])
+chainParser :: P.Parser ([[D.ByteString]])
 chainParser = P.many' parseLine
   where
     parseLine :: P.Parser ([D.ByteString])
@@ -156,7 +156,7 @@ getRandomSentence g nextData starter = getRandomSentence' starter (0 :: Integer)
   where
     -- getRandomSentence' :: (Eq b, Hashable b, Num c) => b -> c -> [b]
     getRandomSentence' l depth = case getRandomNext g nextData l of
-      Just newWord -> [newWord] ++ (if depth < 15 then getRandomSentence' newWord (depth + 1) else []) -- terminate to avoid loops
+      Just newWord -> [newWord] ++ (if depth < 20 then getRandomSentence' newWord (depth + 1) else []) -- terminate to avoid loops
       Nothing      -> [l]
 
 ----------------------
