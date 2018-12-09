@@ -1,1 +1,0 @@
-crappy benchmark. 1m rows marko: 31s
