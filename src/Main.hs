@@ -19,8 +19,9 @@ chan     :: [Char]
 chan     = "##ircbottesting"
 nick     :: [Char]
 nick     = "marko2"
-joinMode :: [Char]
-joinMode = "+x"
+joinEvent :: Event -> Bool
+joinEvent (ModeEvent user mode) = user == nick && mode == "+x"
+joinEvent _                     = False
 
 type ChainData = Marko.NextChainData D.ByteString
  
@@ -77,6 +78,11 @@ listen forwardsDB backwardsDB h = forever $ do
 
 handleEvent :: StdGen -> ChainData -> ChainData -> Event -> Maybe (String, String)
 handleEvent g forwardsDB backwardsDB event = do
+  _ <- if joinEvent event then 
+    Just ("JOIN", chan)
+  else
+    Nothing
+
   case event of
     Ping s -> do
       Just ("PONG ", s)
@@ -95,10 +101,5 @@ handleEvent g forwardsDB backwardsDB event = do
                   Just ("PRIVMSG " ++ user, intercalate " " $ (tail left) ++ right)
                 else
                   Just ("PRIVMSG " ++ channel, intercalate " " $ (tail left) ++ right)
-    ModeEvent user mode -> do
-      if user == nick && mode == joinMode then
-        Just ("JOIN", chan)
-      else
-        Nothing
     -- Just (NoticeEvent s) -> do
     _ -> Nothing
